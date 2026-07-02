@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+setup_verify_trial_project.sh
+.venv/
+.uv/

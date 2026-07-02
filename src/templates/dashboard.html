@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-commerce Analytics Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>E-commerce Analytics Dashboard</h1>
+        <span class="data-source-badge">Data source: {{ summary.data_source }}</span>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="label">Total Orders</div>
+            <div class="value">{{ "{:,}".format(summary.total_orders) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Total Revenue</div>
+            <div class="value">${{ "{:,.2f}".format(summary.total_revenue) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Avg Order Value</div>
+            <div class="value">${{ "{:,.2f}".format(summary.avg_order_value) }}</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h2>Revenue Trend</h2>
+            <div class="chart-container">
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Top Products by Revenue</h2>
+            <div class="chart-container">
+                <canvas id="topProductsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Order Status Breakdown</h2>
+            <div class="chart-container">
+                <canvas id="orderStatusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Category Performance</h2>
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const COLORS = {
+            blue: '#1a73e8',
+            green: '#34a853',
+            yellow: '#fbbc04',
+            red: '#ea4335',
+            cyan: '#24c1e0',
+            purple: '#a142f4',
+            orange: '#fa903e',
+            pink: '#f538a0',
+        };
+        const PALETTE = Object.values(COLORS);
+
+        async function fetchJSON(url) {
+            const res = await fetch(url);
+            return res.json();
+        }
+
+        async function renderRevenueTrend() {
+            const data = await fetchJSON('/api/revenue-trend');
+            new Chart(document.getElementById('revenueTrendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Daily Revenue ($)',
+                        data: data.map(d => d.revenue),
+                        borderColor: COLORS.blue,
+                        backgroundColor: COLORS.blue + '20',
+                        fill: true,
+                        tension: 0.3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { display: true, ticks: { maxTicksLimit: 8 } },
+                        y: { display: true, beginAtZero: true }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        async function renderTopProducts() {
+            const data = await fetchJSON('/api/top-products');
+            new Chart(document.getElementById('topProductsChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.name.length > 20 ? d.name.slice(0, 20) + '…' : d.name),
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: data.map(d => d.total_revenue),
+                        backgroundColor: PALETTE.slice(0, data.length),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        async function renderOrderStatus() {
+            const data = await fetchJSON('/api/order-status');
+            new Chart(document.getElementById('orderStatusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.status),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: PALETTE.slice(0, data.length),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        }
+
+        async function renderCategoryPerformance() {
+            const data = await fetchJSON('/api/category-performance');
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.category),
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: data.map(d => d.total_revenue),
+                        backgroundColor: COLORS.green,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        renderRevenueTrend();
+        renderTopProducts();
+        renderOrderStatus();
+        renderCategoryPerformance();
+    </script>
+</body>
+</html>
